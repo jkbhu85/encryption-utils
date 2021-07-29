@@ -1,32 +1,36 @@
-package com.jk.encryptionutils;
+package com.jk.encryptionutils.ui;
+
+import static com.jk.encryptionutils.Constants.HALF_UNIT;
 
 import java.util.Base64;
 import java.util.Optional;
 
 import javax.crypto.spec.SecretKeySpec;
 
-import com.jk.encryptionutils.crypt.SymEncryptionService;
+import com.jk.encryptionutils.Constants;
+import com.jk.encryptionutils.Utils;
 import com.jk.encryptionutils.crypt.SymEncryptionKeyService.SymmetricKey;
+import com.jk.encryptionutils.crypt.SymEncryptionService;
 
 import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
-import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
-import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 
-public class SymDecryption {
+public final class SymDecryptionViewCreator implements ViewCreator {
 
-	public static Pane createSymDecryptView() {
-		Label methodName = new Label("Algorithm: " + Constants.SYMMETRIC_ENCRYPTION_ALGORITHM);
+	@Override
+	public Pane createView() {
+		Label methodName = new Label("Algorithm: " + Constants.SYMMETRIC_ENCRYPTION_TRANSFORMATION);
 		HBox algoInfoBox = new HBox(methodName);
 
 		Label keyLabel = new Label("Key and IV");
@@ -44,11 +48,13 @@ public class SymDecryption {
 		EventHandler<MouseEvent> handler = (e) -> handleDecryptClick(textField, textArea, errLabel);
 		submitBtn.addEventFilter(MouseEvent.MOUSE_CLICKED, handler);
 
-		Label title = Utils.getTitle("Decrypt");
-		VBox vbox = new VBox(title, new Separator(), algoInfoBox, keyIvFormCtrl, textFormCtrl, errLabel, submitBtn);
-		vbox.setSpacing(10);
-		vbox.setMaxWidth(Double.MAX_VALUE);
-		return vbox;
+		Pane titlePane = Utils.getTitle("Decrypt");
+		VBox vbox = new VBox(titlePane, algoInfoBox, keyIvFormCtrl, textFormCtrl, errLabel, submitBtn);
+		vbox.setSpacing(HALF_UNIT);
+
+		Pane parent = Utils.rightPaneWrapper();
+		parent.getChildren().add(vbox);
+		return parent;
 	}
 
 	private static boolean validateInput(String keyAndIv, String text, Label errLabel) {
@@ -72,14 +78,14 @@ public class SymDecryption {
 	}
 
 	private static String decryptText(String keyAndIv, String encryptedText) throws Exception {
-//		System.out.println("Decrypt text called");
+		//		System.out.println("Decrypt text called");
 		String[] parts = keyAndIv.trim().split("::");
 		byte[] encodedKey = Base64.getDecoder().decode(parts[0].getBytes());
 		byte[] iv = Base64.getDecoder().decode(parts[1]);
-		SecretKeySpec secretKeySpec = new SecretKeySpec(encodedKey, Constants.SYMMETRIC_ENCRYPTION_METHOD);
+		SecretKeySpec secretKeySpec = new SecretKeySpec(encodedKey, Constants.SYMMETRIC_ENCRYPTION_ALGRORITHM);
 		SymmetricKey symKey = new SymmetricKey(secretKeySpec, iv);
 
-		SymEncryptionService encryptionService = new SymEncryptionService(Constants.SYMMETRIC_ENCRYPTION_ALGORITHM,
+		SymEncryptionService encryptionService = new SymEncryptionService(Constants.SYMMETRIC_ENCRYPTION_TRANSFORMATION,
 				symKey);
 		byte[] encryptedData = Base64.getDecoder().decode(encryptedText);
 		byte[] decrypted = encryptionService.decrypt(encryptedData);
@@ -122,6 +128,11 @@ public class SymDecryption {
 		if (result.isPresent() && result.get().getButtonData() == ButtonData.OK_DONE) {
 			Utils.copyToClipboard(text);
 		}
+	}
+
+	@Override
+	public View viewId() {
+		return View.SYMMETRIC_DECRYPTION;
 	}
 
 }

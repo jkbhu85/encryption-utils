@@ -4,6 +4,7 @@ This is simple JavaFX GUI application for encryption utilities. This application
 - Generate AES key
 - Encrypt text by providing an AES key
 - Decrypt text by providing an AES key
+- Generate RSA key pair
 
 Note: Currently only `AES/GCM/NoPadding` algorithm is supported for encryption/decryption.
 

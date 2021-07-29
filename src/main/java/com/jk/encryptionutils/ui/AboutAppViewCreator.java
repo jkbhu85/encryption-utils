@@ -1,26 +1,39 @@
-package com.jk.encryptionutils;
+package com.jk.encryptionutils.ui;
 
 import static com.jk.encryptionutils.Constants.APP_TITLE;
+import static com.jk.encryptionutils.Constants.HALF_UNIT;
+import static com.jk.encryptionutils.Constants.UNIT;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.Properties;
 
+import com.jk.encryptionutils.Utils;
+
+import javafx.application.Application;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
-import javafx.scene.control.Separator;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 
-public class AboutPage {
+public final class AboutAppViewCreator implements ViewCreator {
 
-	public static Pane createAboutPage() {
-		VBox titleBox = new VBox(Utils.getTitle(APP_TITLE), new Separator());
+	private final Application application;
 
+	public AboutAppViewCreator(Application application) {
+		this.application = application;
+	}
+
+	private void openInBrowser(String url) {
+		application.getHostServices().showDocument(url);
+	}
+
+	@Override
+	public Pane createView() {
 		GridPane gridPane = new GridPane();
-		gridPane.setHgap(20);
-		gridPane.setVgap(10);
+		gridPane.setHgap(UNIT);
+		gridPane.setVgap(HALF_UNIT);
 
 		int row = 0;
 		gridPane.add(new Label("Version"), 0, row);
@@ -31,21 +44,24 @@ public class AboutPage {
 		gridPane.add(new Label("Jitendra Kumar"), 1, row);
 
 		row = 2;
-		gridPane.add(new Label("Link"), 0, 2);
-
-		Hyperlink linkToApp = new Hyperlink("https://github.com/optimus29");
-		linkToApp.setOnAction(e -> EncryptionUtilsApp.openInBrowser(linkToApp.getText()));
+		gridPane.add(new Label("Link"), 0, row);
+		Hyperlink linkToApp = new Hyperlink("https://github.com/optimus29/encryption-utils");
+		linkToApp.setOnAction(e -> openInBrowser(linkToApp.getText()));
 		gridPane.add(linkToApp, 1, row);
 
-		VBox vbox = new VBox(titleBox, gridPane);
+		Pane titlePane = Utils.getTitle(APP_TITLE);
+		VBox vbox = new VBox(titlePane, gridPane);
 		vbox.setMaxWidth(Double.MAX_VALUE);
-		vbox.setSpacing(20);
-		return vbox;
+		vbox.setSpacing(UNIT);
+
+		Pane parent = Utils.rightPaneWrapper();
+		parent.getChildren().add(vbox);
+		return parent;
 	}
 
 	private static String getAppVersion() {
 		try {
-			InputStream in = AboutPage.class.getClassLoader()
+			InputStream in = AboutAppViewCreator.class.getClassLoader()
 					.getResourceAsStream("META-INF/maven/com.jk/encryption-utils/pom.properties");
 			if (in == null) {
 				throw new FileNotFoundException("File pom.properties not found.");
@@ -61,6 +77,11 @@ public class AboutPage {
 			System.err.println("Error occurred while finding application version. Error: " + e.getMessage());
 		}
 		return "Unknown";
+	}
+
+	@Override
+	public View viewId() {
+		return View.ABOUT_APP;
 	}
 
 }

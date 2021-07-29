@@ -5,7 +5,7 @@
 
     <groupId>com.jk</groupId>
     <artifactId>encryption-utils</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <packaging>jar</packaging>
 
     <properties>
@@ -19,9 +19,18 @@
         <maven.compiler.plugin.version>3.8.1</maven.compiler.plugin.version>
         <javafx.maven.plugin.version>0.0.6</javafx.maven.plugin.version>
         <maven.assembly.plugin.version>3.1.1</maven.assembly.plugin.version>
+        <lombok.version>1.18.12</lombok.version>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <optional>true</optional>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk15on</artifactId>
@@ -69,7 +78,7 @@
                 </configuration>
             </plugin>
             -->
-			
+
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven.compiler.plugin.version}</version>
