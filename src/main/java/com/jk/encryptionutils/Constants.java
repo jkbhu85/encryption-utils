@@ -23,7 +23,9 @@ public final class Constants {
 	public static final double HALF_UNIT = UNIT / 2;
 	public static final double ONE_FOURTH_UNIT = UNIT / 4;
 	public static final Insets PADDING_HALF_UNIT = new Insets(HALF_UNIT, HALF_UNIT, HALF_UNIT, HALF_UNIT);
+	public static final Insets PADDING_UNIT = new Insets(UNIT, UNIT, UNIT, UNIT);
 	public static final Insets PADDING_UNIT_LEFT = new Insets(0, 0, 0, UNIT);
+	public static final Insets PADDING_DOUBLE_LEFT = new Insets(0, 0, 0, UNIT * 2);
 
 	private Constants() {
 	}

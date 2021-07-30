@@ -1,0 +1,13 @@
+.root{
+    -fx-font-size: 10pt;
+}
+.view-title {
+	-fx-font-size: 1.25em;
+}
+.secondary-text {
+	-fx-font-size: .9em;
+	-fx-text-fill: rgb(169, 169, 169);
+}
+.btn-sm {
+	-fx-font-size: .9em;
+}

@@ -17,11 +17,10 @@ import com.jk.encryptionutils.ui.AboutAppViewCreator;
 import com.jk.encryptionutils.ui.AsymDecryptionViewCreator;
 import com.jk.encryptionutils.ui.AsymEncryptionViewCreator;
 import com.jk.encryptionutils.ui.AsymKeyGenerationViewCreator;
-import com.jk.encryptionutils.ui.SymDecryptionViewCreator;
-import com.jk.encryptionutils.ui.SymEncryptionViewCreator;
+import com.jk.encryptionutils.ui.SymCryptionViewCreator;
 import com.jk.encryptionutils.ui.SymKeyGenerationViewCreator;
-import com.jk.encryptionutils.ui.View;
 import com.jk.encryptionutils.ui.ViewCreator;
+import com.jk.encryptionutils.ui.ViewId;
 
 import javafx.application.Application;
 import javafx.geometry.Rectangle2D;
@@ -44,11 +43,11 @@ public final class EncryptionUtilsApp extends Application {
 
 	private static final Background BG_LIGHTGREY = new Background(new BackgroundFill(Color.LIGHTGREY, null, null));
 	private static final ScheduledExecutorService EXECUTOR_SERVICE = Executors.newScheduledThreadPool(1);
-	private static final Map<View, Pane> ID_VIEW_MAP = new EnumMap<>(View.class);
+	private static final Map<ViewId, Pane> ID_VIEW_MAP = new EnumMap<>(ViewId.class);
 
 	private final List<ViewCreator> viewCreators;
 	private Pane rightPane;
-	private View currentViewId;
+	private ViewId currentViewId;
 	private double colWidth;
 	private double leftWidth;
 	private double rightWidth;
@@ -60,11 +59,10 @@ public final class EncryptionUtilsApp extends Application {
 
 	private void instantiateViewCreators(Stage primaryStage) {
 		viewCreators.add(new AboutAppViewCreator(this));
-		viewCreators.add(new SymEncryptionViewCreator());
-		viewCreators.add(new SymDecryptionViewCreator());
+		viewCreators.add(new SymCryptionViewCreator());
 		viewCreators.add(new SymKeyGenerationViewCreator());
-		viewCreators.add(new AsymEncryptionViewCreator());
-		viewCreators.add(new AsymDecryptionViewCreator());
+		viewCreators.add(new AsymEncryptionViewCreator(primaryStage));
+		viewCreators.add(new AsymDecryptionViewCreator(primaryStage));
 		viewCreators.add(new AsymKeyGenerationViewCreator(primaryStage));
 	}
 
@@ -74,7 +72,7 @@ public final class EncryptionUtilsApp extends Application {
 		EXECUTOR_SERVICE.schedule(() -> target.setBackground(null), 150, TimeUnit.MILLISECONDS);
 	}
 
-	private Label clickableLabel(String labelText, View viewId, boolean leftPad) {
+	private Label clickableLabel(String labelText, ViewId viewId, boolean leftPad) {
 		Label label = new Label(labelText);
 		label.addEventHandler(MouseEvent.MOUSE_CLICKED, (e) -> onLabelClickHandler(e));
 		label.addEventHandler(MouseEvent.MOUSE_CLICKED, (e) -> showView(viewId));
@@ -86,7 +84,7 @@ public final class EncryptionUtilsApp extends Application {
 		return label;
 	}
 
-	private Label clickableLabel(String labelText, View viewId) {
+	private Label clickableLabel(String labelText, ViewId viewId) {
 		return clickableLabel(labelText, viewId, true);
 	}
 
@@ -99,15 +97,16 @@ public final class EncryptionUtilsApp extends Application {
 		appUi.setMaxWidth(Double.MAX_VALUE);
 		appUi.setPrefWidth(leftWidth + rightWidth);
 
-		showView(View.SYMMETRIC_ENCRYPTION);
+		showView(ViewId.SYMMETRIC_CRYPTION);
 
 		Scene scene = new Scene(appUi);
+		scene.getStylesheets().add(getClass().getResource("/application.css").toExternalForm());
 		primaryStage.setScene(scene);
 		primaryStage.setTitle(APP_TITLE);
 		primaryStage.show();
 		primaryStage.setMinWidth(leftWidth + rightWidth);
 		primaryStage.setMinHeight(appHeight);
-		primaryStage.getIcons().add(new Image(EncryptionUtilsApp.class.getResourceAsStream("/logo.png")));
+		primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/logo.png")));
 	}
 
 	private void computeWidths() {
@@ -135,15 +134,19 @@ public final class EncryptionUtilsApp extends Application {
 	}
 
 	private Pane createLeftMenu() {
-		Label symLabel = clickableLabel("Symmetric", View.SYMMETRIC_ENCRYPTION, false);
-		Label symEncrypt = clickableLabel("Encrypt", View.SYMMETRIC_ENCRYPTION);
-		Label symDecrypt = clickableLabel("Decrypt", View.SYMMETRIC_DECRYPTION);
-		Label symGenKey = clickableLabel("Generate key", View.SYMMETRIC_KEY_GENERATION);
-		Label asymLabel = clickableLabel("Asymmetric", View.ASYMMETRIC_KEY_GENERATION, false);
-		Label asymGenKey = clickableLabel("Generate key", View.ASYMMETRIC_KEY_GENERATION);
-		Label aboutApp = clickableLabel("About", View.ABOUT_APP, false);
+		Label asymLabel = clickableLabel("Asymmetric", ViewId.ASYMMETRIC_ENCRYPTION, false);
+		Label asymEncrypt = clickableLabel("Encryption", ViewId.ASYMMETRIC_ENCRYPTION);
+		Label asymDecrypt = clickableLabel("Decryption", ViewId.ASYMMETRIC_DECRYPTION);
+		Label asymGenKey = clickableLabel("Generate key", ViewId.ASYMMETRIC_KEY_GENERATION);
+		Label symLabel = clickableLabel("Symmetric", ViewId.SYMMETRIC_CRYPTION, false);
+		Label symDecrypt = clickableLabel("Cryption", ViewId.SYMMETRIC_CRYPTION);
+		Label symGenKey = clickableLabel("Generate key", ViewId.SYMMETRIC_KEY_GENERATION);
+		Label aboutApp = clickableLabel("About", ViewId.ABOUT_APP, false);
 
-		VBox leftPane = new VBox(symLabel, symEncrypt, symDecrypt, symGenKey, asymLabel, asymGenKey, aboutApp);
+		VBox leftPane = new VBox(
+				asymLabel, asymEncrypt, asymDecrypt, asymGenKey,
+				symLabel, symDecrypt, symGenKey,
+				aboutApp);
 		leftPane.setSpacing(HALF_UNIT);
 		leftPane.setPadding(PADDING_HALF_UNIT);
 		leftPane.setMinWidth(leftWidth);
@@ -156,7 +159,7 @@ public final class EncryptionUtilsApp extends Application {
 		super.stop();
 	}
 
-	private void showView(View viewId) {
+	private void showView(ViewId viewId) {
 		if (currentViewId == viewId) {
 			return;
 		}
@@ -173,7 +176,7 @@ public final class EncryptionUtilsApp extends Application {
 		}
 	}
 
-	private Pane createView(View viewId) {
+	private Pane createView(ViewId viewId) {
 		for (ViewCreator viewCreator : viewCreators) {
 			if (viewCreator.viewId() == viewId) {
 				return viewCreator.createView();

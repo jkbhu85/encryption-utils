@@ -1,33 +1,61 @@
 package com.jk.encryptionutils.crypt;
 
 import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 
+import com.jk.encryptionutils.AppContextException;
 import com.jk.encryptionutils.Constants;
-import com.jk.encryptionutils.crypt.SymEncryptionKeyService.SymmetricKey;
+
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.experimental.FieldDefaults;
 
 public final class SymEncryptionService {
 
-	private final String encryptionMethod;
-	private final SymmetricKey symmetricKey;
-
-	public SymEncryptionService(String encryptionMethod, SymmetricKey symmetricKey) {
-		this.encryptionMethod = encryptionMethod;
-		this.symmetricKey = symmetricKey;
+	private static byte[] doOperation(final int mode, CryptionReqeust cryptionRequest) throws Exception {
+		Cipher cipher = Cipher.getInstance(cryptionRequest.getTransformation(), Constants.SECURITY_PROVIDER);
+		cipher.init(
+				mode,
+				cryptionRequest.getSecretKey(),
+				new IvParameterSpec(cryptionRequest.getNonce()));
+		return cipher.doFinal(cryptionRequest.getData());
 	}
 
-	private byte[] doOperation(final int mode, byte[] data) throws Exception {
-		Cipher cipher = Cipher.getInstance(encryptionMethod, Constants.SECURITY_PROVIDER);
-		cipher.init(mode, symmetricKey.getSecretKey(), new IvParameterSpec(symmetricKey.getIv()));
-		return cipher.doFinal(data);
+	public byte[] encrypt(CryptionReqeust cryptionRequest) throws AppContextException {
+		try {
+			return doOperation(Cipher.ENCRYPT_MODE, cryptionRequest);
+		}
+		catch (Exception e) {
+			throw new AppContextException("Encrypting", e);
+		}
 	}
 
-	public byte[] encrypt(byte[] data) throws Exception {
-		return doOperation(Cipher.ENCRYPT_MODE, data);
+	public byte[] decrypt(CryptionReqeust cryptionRequest) throws AppContextException {
+		try {
+			return doOperation(Cipher.DECRYPT_MODE, cryptionRequest);
+		}
+		catch (Exception e) {
+			throw new AppContextException("Decrypting", e);
+		}
 	}
 
-	public byte[] decrypt(byte[] data) throws Exception {
-		return doOperation(Cipher.DECRYPT_MODE, data);
+	@Getter
+	@Builder
+	@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+	public static class CryptionReqeust {
+
+		@NonNull
+		String transformation;
+		@NonNull
+		SecretKey secretKey;
+		@NonNull
+		byte[] nonce;
+		@NonNull
+		byte[] data;
+
 	}
 
 }

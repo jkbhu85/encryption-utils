@@ -1,50 +1,58 @@
 package com.jk.encryptionutils.ui;
 
-import static com.jk.encryptionutils.Constants.HALF_UNIT;
 import static com.jk.encryptionutils.Constants.UNIT;
 
 import java.util.Base64;
-import java.util.Optional;
+
+import javax.crypto.SecretKey;
 
 import com.jk.encryptionutils.Constants;
 import com.jk.encryptionutils.Utils;
 import com.jk.encryptionutils.crypt.SymEncryptionKeyService;
-import com.jk.encryptionutils.crypt.SymEncryptionKeyService.SymmetricKey;
 import com.jk.encryptionutils.crypt.SymEncryptionKeyService.SymmetricKeyRequest;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonBar.ButtonData;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.ChoiceBox;
-import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 
 public final class SymKeyGenerationViewCreator implements ViewCreator {
 
+	private static final ObservableList<Integer> KEY_SIZE_OPTIONS = FXCollections.observableArrayList(
+			256, 512, 1024, 2048);
+	private final VBox notiArea = new VBox();
+	private final SymEncryptionKeyService symEncryptionKeyService;
+	private ChoiceBox<Integer> keyLengthChoicBox;
+	private Button btnSubmit;
+
+	public SymKeyGenerationViewCreator() {
+		this.symEncryptionKeyService = new SymEncryptionKeyService();
+	}
+
 	@Override
 	public Pane createView() {
-		ObservableList<Integer> list = FXCollections.observableArrayList(256, 512, 1024, 2048);
-		ChoiceBox<Integer> keyLengthChoicBox = new ChoiceBox<>(list);
-		keyLengthChoicBox.setValue(list.get(0));
+		keyLengthChoicBox = new ChoiceBox<>(KEY_SIZE_OPTIONS);
+		keyLengthChoicBox.setValue(KEY_SIZE_OPTIONS.get(0));
 
 		GridPane gridPane = new GridPane();
 		gridPane.setHgap(UNIT);
-		gridPane.setVgap(HALF_UNIT);
+		gridPane.setVgap(UNIT);
 		gridPane.add(new Label("Length of the key"), 0, 0);
 		gridPane.add(keyLengthChoicBox, 1, 0);
 
-		Button btn = new Button();
-		btn.setText("Generate Symmetric Key");
-		btn.addEventFilter(MouseEvent.MOUSE_CLICKED, e -> onClickGenKeyAndIv(keyLengthChoicBox));
+		btnSubmit = new Button("Generate Symmetric Key");
+		btnSubmit.addEventFilter(MouseEvent.MOUSE_CLICKED, e -> generateKey());
+		HBox buttonBar = new HBox(btnSubmit);
+		buttonBar.setSpacing(UNIT);
 
-		Pane titlePane = Utils.getTitle("Generate Key");
-		VBox vbox = new VBox(titlePane, gridPane, btn);
+		Pane titlePane = Utils.getTitle("Generate Symmetric Key");
+		VBox vbox = new VBox(titlePane, gridPane, buttonBar);
 		vbox.setSpacing(UNIT);
 
 		Pane parent = Utils.rightPaneWrapper();
@@ -52,52 +60,50 @@ public final class SymKeyGenerationViewCreator implements ViewCreator {
 		return parent;
 	}
 
-	public static void onClickGenKeyAndIv(ChoiceBox<Integer> keyLengthChoicBox) {
-		boolean error = false;
-		String keyAndIv = null;
-		String errorMsg = null;
-
-		try {
-			keyAndIv = getKeyAndIv(keyLengthChoicBox);
-		}
-		catch (Exception e) {
-			error = true;
-			errorMsg = e.getMessage() == null ? "Error occurred while generating key." : e.getMessage();
-		}
-
-		Dialog<ButtonType> dialog = new Dialog<>();
-		dialog.setTitle(error ? "Error occurred" : "Key and IV");
-		if (!error) {
-			ButtonType copyBtn = new ButtonType("Copy to Clipboard", ButtonData.OK_DONE);
-			dialog.getDialogPane().getButtonTypes().add(copyBtn);
-			dialog.setContentText(keyAndIv);
-		}
-		else {
-			dialog.setContentText(errorMsg);
-		}
-
-		Optional<ButtonType> result = dialog.showAndWait();
-		if (result.isPresent() && result.get().getButtonData() == ButtonData.OK_DONE) {
-			Utils.copyToClipboard(keyAndIv);
-		}
+	private void generateKey() {
+		beforeProcessStart();
+		startProcess();
+		afterProcessEnd();
 	}
 
-	private static String getKeyAndIv(ChoiceBox<Integer> keyLengthChoicBox) {
-		SymmetricKeyRequest symKeyReq = SymmetricKeyRequest.builder()
-				.method(Constants.SYMMETRIC_ENCRYPTION_ALGRORITHM)
-				.keySize(keyLengthChoicBox.getValue())
-				.numberOfIvBytes(Constants.SYMMETRIC_ENCRYPTION_NUMBER_OF_VI_BYTES)
-				.build();
+	private void beforeProcessStart() {
+		notiArea.getChildren().clear();
+		btnSubmit.setDisable(true);
+	}
 
-		SymmetricKey symKey = new SymEncryptionKeyService().createNewKey(symKeyReq);
-		String key = Base64.getEncoder().encodeToString(symKey.getSecretKey().getEncoded());
-		String iv = Base64.getEncoder().encodeToString(symKey.getIv());
-		return key + "::" + iv;
+	private void afterProcessEnd() {
+		btnSubmit.setDisable(false);
+	}
+
+	private void startProcess() {
+		String key;
+		try {
+			SymmetricKeyRequest symKeyReq = SymmetricKeyRequest.builder()
+					.method(Constants.SYMMETRIC_ENCRYPTION_ALGRORITHM)
+					.keySize(keyLengthChoicBox.getValue())
+					.build();
+
+			SecretKey secretKey = symEncryptionKeyService.createNewKey(symKeyReq);
+			key = Base64.getEncoder().encodeToString(secretKey.getEncoded());
+		}
+		catch (Exception e) {
+			showError("Generating key", e);
+			return;
+		}
+
+		Utils.copyToClipboardDialog("Secret key (Base64)", key);
+	}
+
+	private void showError(String context, Exception e) {
+		String errMsg = e.getMessage() != null
+				? e.getMessage()
+				: "Unknown error occurred.";
+		notiArea.getChildren().add(Utils.getErrorLabel(context + ": " + errMsg));
 	}
 
 	@Override
-	public View viewId() {
-		return View.SYMMETRIC_KEY_GENERATION;
+	public ViewId viewId() {
+		return ViewId.SYMMETRIC_KEY_GENERATION;
 	}
 
 }

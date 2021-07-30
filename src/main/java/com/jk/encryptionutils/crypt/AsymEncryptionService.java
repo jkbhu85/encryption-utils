@@ -10,35 +10,75 @@ import javax.crypto.Cipher;
 
 import com.jk.encryptionutils.Constants;
 
-public class AsymEncryptionService {
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.experimental.FieldDefaults;
 
-	private static byte[] doOperation(final int mode, String transformation, Key key, final byte[] data)
-			throws Exception {
+public final class AsymEncryptionService {
+
+	private AsymEncryptionService() {
+	}
+
+	private static byte[] doOperation(int operation, byte[] data, Key key, String transformation) throws Exception {
 		Cipher cipher = Cipher.getInstance(transformation, Constants.SECURITY_PROVIDER);
-		cipher.init(mode, key);
+		cipher.init(operation, key);
 		final int blockSize = cipher.getBlockSize();
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		int start = 0;
+		final ByteArrayOutputStream out = new ByteArrayOutputStream();
 		while (start < data.length) {
-			byte[] dataBlock;
-			if (start + blockSize > data.length) {
-				dataBlock = Arrays.copyOfRange(data, start, data.length);
-			}
-			else {
-				dataBlock = Arrays.copyOfRange(data, start, start + blockSize);
-				start += blockSize;
-			}
+			byte[] dataBlock = start + blockSize > data.length
+					? Arrays.copyOfRange(data, start, data.length)
+					: Arrays.copyOfRange(data, start, start + blockSize);
+			start += blockSize;
 			out.write(cipher.doFinal(dataBlock));
 		}
 		return out.toByteArray();
 	}
 
-	public static byte[] encrypt(String transformation, PublicKey publicKey, byte[] data) throws Exception {
-		return doOperation(Cipher.ENCRYPT_MODE, transformation, publicKey, data);
+	public static byte[] encrypt(EncryptionRequest encryptionRequest) throws Exception {
+		return doOperation(
+				Cipher.ENCRYPT_MODE,
+				encryptionRequest.getData(),
+				encryptionRequest.getPublicKey(),
+				encryptionRequest.getTransformation());
 	}
 
-	public static byte[] decrypt(String transformation, PrivateKey privateKey, byte[] data) throws Exception {
-		return doOperation(Cipher.DECRYPT_MODE, transformation, privateKey, data);
+	public static byte[] decrypt(DecryptionRequest decryptionRequest) throws Exception {
+		return doOperation(
+				Cipher.DECRYPT_MODE,
+				decryptionRequest.getData(),
+				decryptionRequest.getPrivateKey(),
+				decryptionRequest.getTransformation());
+	}
+
+	@Getter
+	@Builder
+	@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+	public static class EncryptionRequest {
+
+		@NonNull
+		byte[] data;
+		@NonNull
+		PublicKey publicKey;
+		@NonNull
+		String transformation;
+
+	}
+
+	@Getter
+	@Builder
+	@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+	public static class DecryptionRequest {
+
+		@NonNull
+		byte[] data;
+		@NonNull
+		PrivateKey privateKey;
+		@NonNull
+		String transformation;
+
 	}
 
 }

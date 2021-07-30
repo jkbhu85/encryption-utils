@@ -270,8 +270,8 @@ public final class AsymKeyGenerationViewCreator implements ViewCreator {
 	}
 
 	@Override
-	public View viewId() {
-		return View.ASYMMETRIC_KEY_GENERATION;
+	public ViewId viewId() {
+		return ViewId.ASYMMETRIC_KEY_GENERATION;
 	}
 
 }

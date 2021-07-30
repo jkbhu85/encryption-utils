@@ -7,7 +7,6 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Base64;
 
 import com.jk.encryptionutils.Constants;
 
@@ -17,7 +16,10 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.experimental.FieldDefaults;
 
-public class AsymEncryptionKeyService {
+public final class AsymEncryptionKeyService {
+
+	private AsymEncryptionKeyService() {
+	}
 
 	public static KeyPair generateKeyPair(KeyPairGenerateRequest keyPairGenerateRequest) throws Exception {
 		KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(keyPairGenerateRequest.getAlgorithm(),
@@ -26,32 +28,16 @@ public class AsymEncryptionKeyService {
 		return keyPairGenerator.generateKeyPair();
 	}
 
-	public static KeyPair createKeyPair(KeyPairCreateRequest keyPairCreateRequest) throws Exception {
-		KeyFactory keyFactory = KeyFactory.getInstance(keyPairCreateRequest.getAlgorithm());
-		X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(
-				Base64.getDecoder().decode(keyPairCreateRequest.getPublicKey()));
-		PublicKey publicKey = keyFactory.generatePublic(x509KeySpec);
-
-		// load private key
-		PKCS8EncodedKeySpec pcksKeySpec = new PKCS8EncodedKeySpec(
-				Base64.getDecoder().decode(keyPairCreateRequest.getPrivateKey()));
-		PrivateKey privateKey = keyFactory.generatePrivate(pcksKeySpec);
-
-		return new KeyPair(publicKey, privateKey);
+	public static PublicKey getPublicKey(String algorithm, byte[] publicKeyData) throws Exception {
+		KeyFactory keyFactory = KeyFactory.getInstance(algorithm);
+		X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(publicKeyData);
+		return keyFactory.generatePublic(x509KeySpec);
 	}
 
-	@Getter
-	@Builder
-	@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-	public static class KeyPairCreateRequest {
-
-		@NonNull
-		String publicKey;
-		@NonNull
-		String privateKey;
-		@NonNull
-		String algorithm;
-
+	public static PrivateKey getPrivateKey(String algorithm, byte[] privateKeyData) throws Exception {
+		KeyFactory keyFactory = KeyFactory.getInstance(algorithm);
+		PKCS8EncodedKeySpec pcks8KeySpec = new PKCS8EncodedKeySpec(privateKeyData);
+		return keyFactory.generatePrivate(pcks8KeySpec);
 	}
 
 	@Getter

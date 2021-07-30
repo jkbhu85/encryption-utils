@@ -80,8 +80,8 @@ public final class AboutAppViewCreator implements ViewCreator {
 	}
 
 	@Override
-	public View viewId() {
-		return View.ABOUT_APP;
+	public ViewId viewId() {
+		return ViewId.ABOUT_APP;
 	}
 
 }

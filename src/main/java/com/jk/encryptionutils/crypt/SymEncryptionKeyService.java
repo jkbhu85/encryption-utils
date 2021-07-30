@@ -4,6 +4,7 @@ import java.security.SecureRandom;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 public class SymEncryptionKeyService {
 
@@ -22,58 +23,32 @@ public class SymEncryptionKeyService {
 		return random;
 	}
 
-	public SymmetricKey createNewKey(SymmetricKeyRequest symKeyReq) {
-		try {
-			KeyGenerator keyGenerator = KeyGenerator.getInstance(symKeyReq.getMethod());
-			keyGenerator.init(symKeyReq.getKeySize(), SecureRandom.getInstanceStrong());
-			return new SymmetricKey(keyGenerator.generateKey(), getRandom(symKeyReq.getNumberOfIvBytes()));
-		}
-		catch (RuntimeException e) {
-			throw e;
-		}
-		catch (Exception e) {
-			throw new RuntimeException(e);
-		}
+	public byte[] generateNonce(int numberOfBytes) {
+		return getRandom(numberOfBytes);
 	}
 
-	public static class SymmetricKey {
+	public SecretKey createNewKey(SymmetricKeyRequest symKeyReq) throws Exception {
+		KeyGenerator keyGenerator = KeyGenerator.getInstance(symKeyReq.getMethod());
+		keyGenerator.init(symKeyReq.getKeySize(), SecureRandom.getInstanceStrong());
+		return keyGenerator.generateKey();
+	}
 
-		private final SecretKey secretKey;
-		private final byte[] iv;
-
-		public SymmetricKey(SecretKey secretKey, byte[] iv) {
-			this.secretKey = secretKey;
-			this.iv = iv;
-		}
-
-		public SecretKey getSecretKey() {
-			return secretKey;
-		}
-
-		public byte[] getIv() {
-			return iv;
-		}
-
+	public SecretKey getSecretKey(String algorithm, byte[] keyData) {
+		return new SecretKeySpec(keyData, algorithm);
 	}
 
 	public static class SymmetricKeyRequest {
 
 		private final String method;
-		private final int numberOfIvBytes;
 		private final int keySize;
 
 		private SymmetricKeyRequest(SymmetricKeyRequestBuilder builder) {
 			this.method = builder.method;
-			this.numberOfIvBytes = builder.numberOfIvBytes;
 			this.keySize = builder.keySize;
 		}
 
 		public String getMethod() {
 			return method;
-		}
-
-		public int getNumberOfIvBytes() {
-			return numberOfIvBytes;
 		}
 
 		public int getKeySize() {
@@ -83,7 +58,6 @@ public class SymEncryptionKeyService {
 		public static class SymmetricKeyRequestBuilder {
 
 			private String method;
-			private int numberOfIvBytes;
 			private int keySize;
 
 			private SymmetricKeyRequestBuilder() {
@@ -101,21 +75,6 @@ public class SymEncryptionKeyService {
 					throw new IllegalArgumentException("Algorithm must not be null or blank string.");
 				}
 				this.method = method.trim();
-				return this;
-			}
-
-			/**
-			 * Sets number of bytes for IV. This value must be positive integer.
-			 * 
-			 * @param numberOfIvBytes number of bytes for IV
-			 * @return reference to this instance
-			 * @throws IllegalArgumentException if the value is non-positive integer
-			 */
-			public SymmetricKeyRequestBuilder numberOfIvBytes(int numberOfIvBytes) {
-				if (numberOfIvBytes < 1) {
-					throw new IllegalArgumentException("Number of bytes for IV must be a positive integer.");
-				}
-				this.numberOfIvBytes = numberOfIvBytes;
 				return this;
 			}
 

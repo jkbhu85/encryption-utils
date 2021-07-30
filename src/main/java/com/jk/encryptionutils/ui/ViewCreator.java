@@ -11,6 +11,6 @@ public interface ViewCreator {
 	 */
 	Pane createView();
 	
-	View viewId();
+	ViewId viewId();
 
 }

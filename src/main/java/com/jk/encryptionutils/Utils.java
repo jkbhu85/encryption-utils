@@ -2,18 +2,23 @@ package com.jk.encryptionutils;
 
 import static com.jk.encryptionutils.Constants.HALF_UNIT;
 
+import java.util.Optional;
+
 import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
+import javafx.scene.control.TextInputControl;
+import javafx.scene.control.ButtonBar.ButtonData;
 import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontPosture;
-import javafx.scene.text.FontWeight;
 
 public final class Utils {
 
@@ -26,10 +31,7 @@ public final class Utils {
 
 	public static Label secondaryColorText(String text) {
 		Label l = new Label(text);
-		Font font = Font.font(Font.getDefault().getFamily(), FontWeight.NORMAL, FontPosture.REGULAR,
-				Font.getDefault().getSize() * .9);
-		l.setFont(font);
-		l.setTextFill(Color.DARKGRAY);
+		l.getStyleClass().add("secondary-text");
 		return l;
 	}
 
@@ -47,9 +49,7 @@ public final class Utils {
 
 	public static Pane getTitle(String titleText) {
 		Label title = new Label(titleText);
-		Font font = Font.font(Font.getDefault().getFamily(), FontWeight.MEDIUM, FontPosture.REGULAR,
-				Font.getDefault().getSize() * 1.25);
-		title.setFont(font);
+		title.getStyleClass().add("view-title");
 		VBox vbox = new VBox(title, new Separator());
 		vbox.setSpacing(HALF_UNIT);
 		vbox.setMaxWidth(Double.MAX_VALUE);
@@ -58,7 +58,7 @@ public final class Utils {
 
 	public static Pane rightPaneWrapper() {
 		Pane pane = new HBox();
-		pane.setPadding(Constants.PADDING_HALF_UNIT);
+		pane.setPadding(Constants.PADDING_UNIT);
 		pane.setMaxWidth(Double.MAX_VALUE);
 		return pane;
 	}
@@ -67,6 +67,41 @@ public final class Utils {
 		VBox control = new VBox(label, node);
 		control.setSpacing(HALF_UNIT);
 		return control;
+	}
+
+	public static void copyToClipboardDialog(String title, String contentText) {
+		Dialog<ButtonType> dialog = new Dialog<>();
+		dialog.setTitle(title);
+		ButtonType copyBtn = new ButtonType("Copy to Clipboard", ButtonData.OK_DONE);
+		dialog.getDialogPane().getButtonTypes().add(copyBtn);
+		dialog.setContentText(contentText);
+
+		Optional<ButtonType> result = dialog.showAndWait();
+		if (result.isPresent() && result.get().getButtonData() == ButtonData.OK_DONE) {
+			Utils.copyToClipboard(contentText);
+		}
+	}
+
+	public static Button createCopyToClipboardBtn(TextInputControl inp, String btnLabel) {
+		Button btn = new Button(btnLabel);
+		btn.getStyleClass().add("btn-sm");
+		bindButtonToTextField(btn, inp);
+		btn.addEventHandler(MouseEvent.MOUSE_CLICKED, (e) -> copyToClipboard(inp.getText()));
+		return btn;
+	}
+
+	public static void bindButtonToTextField(Button btn, TextInputControl inp) {
+		inp.textProperty().addListener((v, s1, s2) -> btn.setDisable(s2 == null || s2.isEmpty()));
+		String currentVal = inp.getText();
+
+		// fire first event
+		if (currentVal != null && currentVal.length() > 0) {
+			inp.setText("");
+		}
+		else {
+			inp.setText(" ");
+		}
+		inp.setText(currentVal);
 	}
 
 	private Utils() {
