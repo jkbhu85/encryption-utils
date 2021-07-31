@@ -8,6 +8,13 @@ This is simple JavaFX GUI application for encryption utilities. This application
 
 Note: For symmetric encryption/decryption, only `AES/GCM/NoPadding` method is supported. For asymmetric encryption/decryption, only `RSA/None/OAEPWITHSHA-384ANDMGF1PADDING` is supported.
 
+## Screenshots
+![Generate key pair](https://user-images.githubusercontent.com/4435371/127738788-77da331d-80f0-4416-8719-9aa591d041bd.png)
+
+![RSA encryption](https://user-images.githubusercontent.com/4435371/127738798-46cefa81-c133-4a16-88c6-d3dfd4868873.png)
+
+![AES cryption](https://user-images.githubusercontent.com/4435371/127738804-1963a43b-0ae3-432c-a0e6-190e1cd3fcde.png)
+
 ## Requirements
 - JDK 16 or higher to build/run the application
 - Maven 3.6.x to build the application
