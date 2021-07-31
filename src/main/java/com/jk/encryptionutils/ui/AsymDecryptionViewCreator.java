@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.security.PrivateKey;
 import java.util.Base64;
-import java.util.Optional;
 
 import com.jk.encryptionutils.Constants;
 import com.jk.encryptionutils.Utils;
@@ -14,9 +13,6 @@ import com.jk.encryptionutils.crypt.AsymEncryptionService;
 import com.jk.encryptionutils.crypt.AsymEncryptionService.DecryptionRequest;
 
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonBar.ButtonData;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextArea;
@@ -200,19 +196,29 @@ public class AsymDecryptionViewCreator implements ViewCreator {
 					? "Reading private key: " + e.getMessage()
 					: "Error occurred while parsing private key.";
 			notiArea.getChildren().add(Utils.getErrorLabel(errMsg));
-			e.printStackTrace();
+			return;
+		}
+		byte[] data;
+		try {
+			data = Base64.getDecoder().decode(inputTextArea.getText());
+		}
+		catch (Exception e) {
+			String errMsg = e.getMessage() != null
+					? "Parsing encrypted text: " + e.getMessage()
+					: "Error occurred while parsing private key.";
+			notiArea.getChildren().add(Utils.getErrorLabel(errMsg));
 			return;
 		}
 
 		try {
-			DecryptionRequest encryptionRequest = DecryptionRequest.builder()
-					.data(inputTextArea.getText().getBytes())
+			DecryptionRequest decryptionRequest = DecryptionRequest.builder()
+					.data(data)
 					.transformation(Constants.ASYMMETRIC_ENCRYPTION_TRANSFORMATION)
 					.privateKey(privateKey)
 					.build();
-			byte[] encrypted = AsymEncryptionService.decrypt(encryptionRequest);
+			byte[] encrypted = AsymEncryptionService.decrypt(decryptionRequest);
 			String str = new String(encrypted);
-			showDecryptedText(str);
+			Utils.copyToClipboardDialog("Decrypted Text", str);
 		}
 		catch (Exception e) {
 			String errMsg = e.getMessage() != null
@@ -221,19 +227,6 @@ public class AsymDecryptionViewCreator implements ViewCreator {
 			notiArea.getChildren().add(Utils.getErrorLabel(errMsg));
 			e.printStackTrace();
 			return;
-		}
-	}
-
-	private void showDecryptedText(String text) {
-		Dialog<ButtonType> dialog = new Dialog<>();
-		dialog.setTitle("Decrypted Text");
-		ButtonType copyBtn = new ButtonType("Copy to Clipboard", ButtonData.OK_DONE);
-		dialog.getDialogPane().getButtonTypes().add(copyBtn);
-		dialog.setContentText(text);
-
-		Optional<ButtonType> result = dialog.showAndWait();
-		if (result.isPresent() && result.get().getButtonData() == ButtonData.OK_DONE) {
-			Utils.copyToClipboard(text);
 		}
 	}
 

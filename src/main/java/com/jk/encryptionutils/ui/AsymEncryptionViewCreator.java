@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.security.PublicKey;
 import java.util.Base64;
-import java.util.Optional;
 
 import com.jk.encryptionutils.Constants;
 import com.jk.encryptionutils.Utils;
@@ -14,9 +13,6 @@ import com.jk.encryptionutils.crypt.AsymEncryptionService;
 import com.jk.encryptionutils.crypt.AsymEncryptionService.EncryptionRequest;
 
 import javafx.scene.control.Button;
-import javafx.scene.control.ButtonBar.ButtonData;
-import javafx.scene.control.ButtonType;
-import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextArea;
@@ -211,7 +207,7 @@ public class AsymEncryptionViewCreator implements ViewCreator {
 					.build();
 			byte[] encrypted = AsymEncryptionService.encrypt(encryptionRequest);
 			String base64 = Base64.getEncoder().encodeToString(encrypted);
-			showEncryptedText(base64);
+			Utils.copyToClipboardDialog("Encrypted Text", base64);
 		}
 		catch (Exception e) {
 			String errMsg = e.getMessage() != null
@@ -220,19 +216,6 @@ public class AsymEncryptionViewCreator implements ViewCreator {
 			notiArea.getChildren().add(Utils.getErrorLabel(errMsg));
 			e.printStackTrace();
 			return;
-		}
-	}
-
-	private void showEncryptedText(String text) {
-		Dialog<ButtonType> dialog = new Dialog<>();
-		dialog.setTitle("Encrypted Text");
-		ButtonType copyBtn = new ButtonType("Copy to Clipboard", ButtonData.OK_DONE);
-		dialog.getDialogPane().getButtonTypes().add(copyBtn);
-		dialog.setContentText(text);
-
-		Optional<ButtonType> result = dialog.showAndWait();
-		if (result.isPresent() && result.get().getButtonData() == ButtonData.OK_DONE) {
-			Utils.copyToClipboard(text);
 		}
 	}
 

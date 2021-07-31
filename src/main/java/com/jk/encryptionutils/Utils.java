@@ -74,7 +74,8 @@ public final class Utils {
 		dialog.setTitle(title);
 		ButtonType copyBtn = new ButtonType("Copy to Clipboard", ButtonData.OK_DONE);
 		dialog.getDialogPane().getButtonTypes().add(copyBtn);
-		dialog.setContentText(contentText);
+		String clipped = contentText.length() < 200 ? contentText : contentText.substring(0, 200) + "...";
+		dialog.setContentText(clipped);
 
 		Optional<ButtonType> result = dialog.showAndWait();
 		if (result.isPresent() && result.get().getButtonData() == ButtonData.OK_DONE) {
