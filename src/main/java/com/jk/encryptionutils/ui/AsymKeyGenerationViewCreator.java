@@ -1,21 +1,9 @@
 package com.jk.encryptionutils.ui;
 
-import static com.jk.encryptionutils.Constants.HALF_UNIT;
-import static com.jk.encryptionutils.Constants.UNIT;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.security.KeyPair;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Base64;
-import java.util.Properties;
-
 import com.jk.encryptionutils.Constants;
 import com.jk.encryptionutils.Utils;
 import com.jk.encryptionutils.crypt.AsymEncryptionKeyService;
 import com.jk.encryptionutils.crypt.AsymEncryptionKeyService.KeyPairGenerateRequest;
-
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Button;
@@ -23,17 +11,30 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.*;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Base64;
+import java.util.Properties;
+
+import static com.jk.encryptionutils.Constants.HALF_UNIT;
+import static com.jk.encryptionutils.Constants.UNIT;
+
 public final class AsymKeyGenerationViewCreator implements ViewCreator {
 
-	private static final ObservableList<Integer> KEY_SIZES = FXCollections.observableArrayList(1024, 2048);
+	private static final String UNIX_LINE_SEPARATOR = "\n";
+
+	private static final ObservableList<Integer> KEY_SIZES =
+			FXCollections.observableArrayList(1024, 1024 * 2, 1024 * 4, 1024 * 8);
 	private static final DateTimeFormatter DTF = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
 
 	private final DirectoryChooser dirChooser;
@@ -202,7 +203,7 @@ public final class AsymKeyGenerationViewCreator implements ViewCreator {
 		}
 
 		if (keyPair != null) {
-			String error1 = saveInFiles ? writeToFiles(keyPair) : "";
+			String error1 = saveInFiles ? writeToFiles(keyPair, keySize) : "";
 			String error2 = saveInProp ? writeToPropertiesFile(keyPair, keySize) : "";
 			if (!error1.isBlank() || !error2.isBlank()) {
 				if (!error1.isBlank()) {
@@ -218,20 +219,57 @@ public final class AsymKeyGenerationViewCreator implements ViewCreator {
 		}
 	}
 
-	private String writeToFiles(KeyPair keyPair) {
+	private static String wrapKeyWithUnixEndings(String str) {
+		final int wrapLength = 60;
+		String lineSeparator = UNIX_LINE_SEPARATOR;
+		int numLineBreakChars = (str.length() / wrapLength) * lineSeparator.length();
+		StringBuilder sb = new StringBuilder(str.length() + numLineBreakChars);
+		for (int i = 0; i < str.length();) {
+			final int k = Math.min(i + wrapLength, str.length());
+			if (i > 0) {
+				sb.append(lineSeparator);
+			}
+			sb.append(str, i, k);
+			i = k;
+		}
+		return sb.toString();
+	}
+
+	private static String rsaPrivateKeyToFileFormat(PrivateKey rsaPrivateKey) {
+		String encodedKey = Base64.getEncoder().encodeToString(rsaPrivateKey.getEncoded());
+		return "-----BEGIN RSA PRIVATE KEY-----"
+				+ UNIX_LINE_SEPARATOR
+				+ wrapKeyWithUnixEndings(encodedKey)
+				+ UNIX_LINE_SEPARATOR
+				+ "-----END RSA PRIVATE KEY-----";
+	}
+
+	private static String rsaPublicKeyToFileFormat(PublicKey rsaPublicKey) {
+		String encodedKey = Base64.getEncoder().encodeToString(rsaPublicKey.getEncoded());
+		return "-----BEGIN RSA PUBLIC KEY-----"
+				+ UNIX_LINE_SEPARATOR
+				+ wrapKeyWithUnixEndings(encodedKey)
+				+ UNIX_LINE_SEPARATOR
+				+ "-----END RSA PUBLIC KEY-----";
+	}
+
+	private String writeToFiles(KeyPair keyPair, int keySize) {
 		String suffix = LocalDateTime.now().format(DTF);
-		File privateKeyFile = new File(keySaveLocation, "private-" + suffix + ".key");
-		File publicKeyFile = new File(keySaveLocation, "public-" + suffix + ".key");
+		File privateKeyFile = new File(keySaveLocation, "private-" + keySize + "-" + suffix + ".pem");
+		File publicKeyFile = new File(keySaveLocation, "public-" + keySize + "-" + suffix + ".pem");
+		String privateKeyValue = rsaPrivateKeyToFileFormat(keyPair.getPrivate());
+		String publicKeyValue = rsaPublicKeyToFileFormat(keyPair.getPublic());
+
 		String error = "";
 		try (FileOutputStream out = new FileOutputStream(publicKeyFile)) {
-			out.write(keyPair.getPublic().getEncoded());
+			out.write(publicKeyValue.getBytes(StandardCharsets.UTF_8));
 		}
 		catch (Exception e) {
 			error += e.getMessage() != null ? e.getMessage() : "Error occurred while writing public key.";
 		}
 
 		try (FileOutputStream out = new FileOutputStream(privateKeyFile)) {
-			out.write(keyPair.getPrivate().getEncoded());
+			out.write(privateKeyValue.getBytes(StandardCharsets.UTF_8));
 		}
 		catch (Exception e) {
 			if (!error.isEmpty()) {
@@ -252,13 +290,13 @@ public final class AsymKeyGenerationViewCreator implements ViewCreator {
 
 		String jdk = System.getProperty("java.runtime.name") + "(" + System.getProperty("java.specification.version")
 				+ ")";
-		String comment = "RSA public and private keys as Base64 string\r\n"
-				+ "RSA key size: " + keySize + "\r\n"
-				+ "Generated by: " + Constants.APP_TITLE + " - " + jdk + "\r\n"
+		String comment = "RSA public and private keys" + UNIX_LINE_SEPARATOR
+				+ "RSA key size: " + keySize + UNIX_LINE_SEPARATOR
+				+ "Generated by: " + Constants.APP_TITLE + " - " + jdk + UNIX_LINE_SEPARATOR
 				+ "Time: " + dateTime.format(DateTimeFormatter.ISO_DATE_TIME);
 
 		String suffix = dateTime.format(DTF);
-		File file = new File(keySaveLocation, "keys-" + suffix + ".properties");
+		File file = new File(keySaveLocation, "keys-" + keySize + "-" + suffix + ".properties");
 		try (FileOutputStream out = new FileOutputStream(file)) {
 			props.store(out, comment);
 		}
